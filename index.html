@@ -9,10 +9,18 @@
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body onload="createNotes()">
+<body>
     <div class="container">
+        <label for="note-time-input" class="heading">Tiempo entre notas (en segundos):</label>
+        <input type="number" id="note-time-input" value="0.5" min="0" step="0.1">
         <div id="melody-visualizer"></div>
-        <button id="play" onclick="playMelody()">Reproducir Melodía</button>
+        <textarea id="melody-input" rows="4" cols="50"
+            placeholder="Introduce las notas aquí, por ejemplo: Do4 - Re4 - Mi4 - Do4 - Do4"></textarea>
+        <div class="button-section">
+            <button id="play">Play</button>
+            <button id="pause">Pause</button>
+            <button id="clear">Clear</button>
+        </div>
     </div>
 
     <script src="app.js"></script>

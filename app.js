@@ -1,96 +1,137 @@
-// Constantes y variables //
+// app.js
 
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+const melodyVisualizer = document.getElementById('melody-visualizer');
+const melodyInput = document.getElementById('melody-input');
+const playMelodyBtn = document.getElementById('play');
+const pauseBtn = document.getElementById('pause');
+const clearTextAreaBtn = document.getElementById('clear');
+// Evento para actualizar noteTime cuando el valor del input cambie
+document.getElementById('note-time-input').addEventListener('input', updateNoteTime);
+
+let isPaused = false;
+let noteTime = 0.5;
+
 const melody = {
-    "C4": { frequency:  261.63, duration:  1, color: "#FF0000" }, // Rojo
-    "D4": { frequency:  293.66, duration:  1, color: "#FF7F00" }, // Naranja
-    "E4": { frequency:  329.63, duration:  1, color: "#FFFF00" }, // Amarillo
-    "F4": { frequency:  349.23, duration:  1, color: "#00FF00" }, // Verde
-    "G4": { frequency:  392.00, duration:  1, color: "#0000FF" }, // Azul
-    "A4": { frequency:  440, duration:  1, color: "#4B0082" }, // Morado
-    "B4": { frequency:  493.88, duration:  1, color: "#9400D3" }, // Violeta
-    "C5": { frequency:  523.25, duration:  1, color: "#FF00FF" }, // Magenta
-    "D5": { frequency:  587.33, duration:  1, color: "#00FFFF" }, // Cian
-    "E5": { frequency:  659.25, duration:  1, color: "#008080" }, // Verde azulado
-    "F5": { frequency:  698.46, duration:  1, color: "#008000" }, // Verde oscuro
-    "G5": { frequency:  783.99, duration:  1, color: "#800000" }, // Marrón
-    "A5": { frequency:  880, duration:  1, color: "#800080" }, // Morado oscuro
-    "B5": { frequency:  988, duration:  1, color: "#FFFFFF" }, // Blanco
-    "C6": { frequency:  1046.50, duration:  1, color: "#FF0000" } // Rojo
+    "Do4":  { frequency: 261.63, color: "#FF0000" },
+    "Re4":  { frequency: 293.66, color: "#FF7F00" },
+    "Mi4":  { frequency: 329.63, color: "#FFFF00" },
+    "Fa4":  { frequency: 349.23, color: "#00FF00" },
+    "Sol4": { frequency: 392.00, color: "#0000FF" },
+    "La4":  { frequency: 440,    color: "#4B0082" },
+    "Si4":  { frequency: 493.88, color: "#9400D3" },
+    "*": { frequency:  0 } // Nota de silencio
 };
 
-const melodyVisualizer = document.getElementById('melody-visualizer');
+Object.keys(melody).forEach(key => {
+    melody[key].duration = noteTime;
+});
 
-// Funciones
+function updateNoteTime() {
+    const noteTimeInput = document.getElementById('note-time-input');
+    noteTime = parseFloat(noteTimeInput.value);
+    Object.keys(melody).forEach(key => {
+        melody[key].duration = noteTime;
+    });
+}
 
 function createNotes() {
     melodyVisualizer.innerHTML = ''; // Limpiar el visualizador
-
     Object.keys(melody).forEach(key => {
         const note = melody[key];
         const noteElement = document.createElement('div');
-
         noteElement.classList.add('note');
         noteElement.id = key;
+        noteElement.textContent = key; // Agregar el nombre de la nota al elemento
         noteElement.addEventListener('click', () => {
-            // Reproducir la nota cuando se haga clic en el círculo
-            playNote(note.frequency, note.duration, note.color, noteElement.id);
+            // Agregar el nombre de la nota al textarea
+            melodyInput.value += `${key} - `;
         });
         melodyVisualizer.appendChild(noteElement);
     });
 }
 
-// Función para reproducir una nota
-async function playNote(frequency, duration, color, id) {
-    const noteElement = document.getElementById(id);
-    noteElement.style.backgroundColor = color;
+function playNote(frequency, duration, id, color) {
+    return new Promise(resolve => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        const noteElement = document.getElementById(id);
+        noteElement.style.backgroundColor = color;
 
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
 
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+        oscillator.frequency.value = frequency;
+        oscillator.type = 'sine'; // Tipo de onda
 
-    oscillator.frequency.value = frequency;
-    oscillator.type = 'sine'; // Tipo de onda
+        // Configuración del volumen
+        gainNode.gain.value =  0.5;
 
-    // Configuración del volumen
-    gainNode.gain.value =   0.5;
+        // Duración de la nota
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
 
-    // Duración de la nota
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + duration);
+        // Resolver la promesa cuando la nota haya terminado de reproducirse
+        setTimeout(() => {
+            noteElement.style.backgroundColor = '#333';
+            resolve();
+        }, duration *  1000); // Convertir la duración de segundos a milisegundos
 
-    // Esperar la duración de la nota antes de cambiar el color de vuelta a blanco
-    await new Promise(resolve => setTimeout(resolve, duration *   1000));
-    noteElement.style.backgroundColor = "#FFFFFF"; // Cambiar el color de vuelta a blanco
+        // Pausar y reanudar la nota
+        oscillator.onended = () => {
+            if (!isPaused) {
+                resolve();
+            }
+        };
+    });
 }
 
-// Función para reproducir la melodía
-async function playMelody() {
+async function playMelodyFromInput() {
     // Desactivar el botón "play"
     const playButton = document.getElementById('play');
+    const clearButton = document.getElementById('clear');
+    const noteInput = document.getElementById('note-time-input');
     playButton.classList.add('disabled');
+    noteInput.classList.add('disabled');
+    clearButton.classList.add('disabled');
+    noteInput.disabled = true;
     playButton.disabled = true;
+    clearButton.disabled = true;
 
-    // Función recursiva para reproducir las notas de manera secuencial
-    async function playNotes(index) {
-        if (index >= Object.keys(melody).length) {
-            // Si hemos llegado al final de la melodía, reactivar el botón "play"
-            playButton.classList.remove('disabled');
-            playButton.disabled = false;
-            return;
-        }
+    const inputNotes = melodyInput.value.split(' - ');
+    let startTime = audioContext.currentTime;
 
-        const key = Object.keys(melody)[index];
-        const note = melody[key];
-        await playNote(note.frequency, note.duration, note.color, key);
+    for (const noteName of inputNotes) {
+        const note = melody[noteName.trim()];
+        if (!note) continue; // Si la nota no existe en el objeto melody, continuar
 
-        // Llamar a sí misma para la siguiente nota
-        playNotes(index +   1);
+        await playNote(note.frequency, note.duration, noteName, note.color);
     }
 
-    // Iniciar la reproducción de la melodía
-    playNotes(0);
+    // Si hemos llegado al final de la melodía, reactivar el botón "play"
+    playButton.classList.remove('disabled');
+    clearButton.classList.remove('disabled');
+    noteInput.classList.remove('disabled');
+    playButton.disabled = false;
+    noteInput.disabled = false;
+    clearButton.disabled = false;
 }
 
+function clearTextArea()  {
+    melodyInput.value = '';
+}
+
+updateNoteTime();
+createNotes();
+playMelodyBtn.addEventListener('click', () => {
+    if (isPaused) {
+        isPaused = false;
+        playMelodyFromInput(); // Reanudar la melodía
+    } else {
+        playMelodyFromInput(); // Iniciar la melodía
+    }
+});
+clearTextAreaBtn.addEventListener('click', clearTextArea);
+pauseBtn.addEventListener('click', () => {
+    isPaused = true;
+});
