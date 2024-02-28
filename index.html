@@ -12,10 +12,16 @@
 <body>
     <div class="container">
         <label for="note-time-input" class="heading">Tiempo entre notas (en segundos):</label>
-        <input type="number" id="note-time-input" value="0.5" min="0" step="0.1">
+        <input type="number" id="note-time-input" class="params-input" value="0.5" min="0" step="0.1">
+
+        <label for="octave-input" class="heading">Octava de las notas:</label>
+        <input type="number" id="octave-input" class="params-input" value="4" min="1" max="8" step="1">
+
         <div id="melody-visualizer"></div>
+
         <textarea id="melody-input" rows="4" cols="50"
             placeholder="Introduce las notas aquí, por ejemplo: Do4 - Re4 - Mi4 - Do4 - Do4"></textarea>
+
         <div class="button-section">
             <button id="play">Play</button>
             <button id="pause">Pause</button>

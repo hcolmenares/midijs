@@ -39,7 +39,7 @@ body {
     color: var(--gray);
 }
 
-#note-time-input {
+.params-input {
     border: 0.2rem solid var(--gray);
     color: var(--gray);
     background: var(--modern-bg);

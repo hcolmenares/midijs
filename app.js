@@ -1,5 +1,3 @@
-// app.js
-
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 const melodyVisualizer = document.getElementById('melody-visualizer');
 const melodyInput = document.getElementById('melody-input');
@@ -8,7 +6,18 @@ const pauseBtn = document.getElementById('pause');
 const clearTextAreaBtn = document.getElementById('clear');
 // Evento para actualizar noteTime cuando el valor del input cambie
 document.getElementById('note-time-input').addEventListener('input', updateNoteTime);
-
+playMelodyBtn.addEventListener('click', () => {
+    if (isPaused) {
+        isPaused = false;
+        playMelodyFromInput(); // Reanudar la melodía
+    } else {
+        playMelodyFromInput(); // Iniciar la melodía
+    }
+});
+clearTextAreaBtn.addEventListener('click', clearTextArea);
+pauseBtn.addEventListener('click', () => {
+    isPaused = true;
+});
 let isPaused = false;
 let noteTime = 0.5;
 
@@ -49,6 +58,25 @@ function createNotes() {
         });
         melodyVisualizer.appendChild(noteElement);
     });
+}
+
+function calcularFrecuencia(nota, escalaBase = 'Do4') {
+    const notas = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const escalaBaseIndex = notas.indexOf(escalaBase.charAt(0));
+    const notaIndex = notas.indexOf(nota.charAt(0));
+    const octava = parseInt(nota.slice(1), 10);
+    const escalaBaseOctava = parseInt(escalaBase.slice(1), 10);
+
+    // Calcular el número de semitonos desde la nota base hasta la nota deseada
+    const semitonos = (notaIndex - escalaBaseIndex + 12) % 12 + (octava - escalaBaseOctava) * 12;
+
+    // Frecuencia de la nota base (Do4 = 440 Hz)
+    const frecuenciaBase = 440;
+
+    // Calcular la frecuencia de la nota deseada
+    const frecuencia = frecuenciaBase * Math.pow(2, semitonos / 12);
+
+    return frecuencia;
 }
 
 function playNote(frequency, duration, id, color) {
@@ -123,15 +151,3 @@ function clearTextArea()  {
 
 updateNoteTime();
 createNotes();
-playMelodyBtn.addEventListener('click', () => {
-    if (isPaused) {
-        isPaused = false;
-        playMelodyFromInput(); // Reanudar la melodía
-    } else {
-        playMelodyFromInput(); // Iniciar la melodía
-    }
-});
-clearTextAreaBtn.addEventListener('click', clearTextArea);
-pauseBtn.addEventListener('click', () => {
-    isPaused = true;
-});
